@@ -1,0 +1,84 @@
+name: 'auto-tagging-action'
+description: 'Composite GitHub Action that automatically performs tagging on every version change.'
+inputs:
+  command:
+    description: 'The command to get the version from the project configuration.'
+    required: true
+  snapshot-pattern:
+    description: 'The regular expression used to decide whether the version is a snapshot or a release.'
+    required: false
+    default: '-SNAPSHOT$'
+  tag-prefix:
+    description: 'A prefix used for tagging. The value "v" is commonly used.'
+    required: false
+  keep-suffix:
+    description: 'Keep [yes] or discard [no] the version suffix for tagging.'
+    required: false
+    default: 'no'
+  dry-run:
+    description: 'Skip [yes] or apply [no] the whole tagging process.'
+    required: false
+    default: 'no'
+  skip-push:
+    description: 'Skip [yes] or apply [no] the push action of the created tag.'
+    required: false
+    default: 'no'
+  git-username:
+    description: 'Set the "user.name" attribute. Otherwise, the name of the user who triggered the push is used.'
+    required: false
+  git-email:
+    description: 'Set the "user.email" attribute. Otherwise, the email of the user who triggered the push is used.'
+    required: false
+outputs:
+  version-given:
+    description: 'The version determined by the given command.'
+    value: ${{ steps.tagging.outputs.version-given }}
+  version-major-minor-patch:
+    description: 'The major, minor and patch part of the version. Only available if all three parts are defined.'
+    value: ${{ steps.tagging.outputs.version-major-minor-patch }}
+  version-major-minor:
+    description: 'The major and minor part of the version. Only available if all two parts are defined.'
+    value: ${{ steps.tagging.outputs.version-major-minor }}
+  version-major:
+    description: 'The major part of the version.'
+    value: ${{ steps.tagging.outputs.version-major }}
+  version-without-suffix:
+    description: 'The version without the suffix part.'
+    value: ${{ steps.tagging.outputs.version-without-suffix }}
+  version-suffix:
+    description: 'The suffix part of the version. Only available if the suffix part is defined.'
+    value: ${{ steps.tagging.outputs.version-suffix }}
+  version-alternative:
+    description: 'The version with a modified suffix that ensures uniqueness.'
+    value: ${{ steps.tagging.outputs.version-alternative }}
+  version-alternative-suffix:
+    description: 'A modified suffix that ensures uniqueness.'
+    value: ${{ steps.tagging.outputs.version-alternative-suffix }}
+  version-tag:
+    description: 'The string created for tagging.'
+    value: ${{ steps.tagging.outputs.version-tag }}
+  strategy:
+    description: 'The versioning strategy can be [snapshot] or [release].'
+    value: ${{ steps.tagging.outputs.strategy }}
+  tag-created:
+    description: 'The tagging is skipped [no] if the version is a snapshot or the tag already exists, otherwise [yes].'
+    value: ${{ steps.tagging.outputs.tag-created }}
+runs:
+  using: 'composite'
+  steps:
+    - id: preparation
+      env:
+        GIT_USERNAME: ${{ inputs.git-username }}
+        GIT_EMAIL: ${{ inputs.git-email }}
+      shell: bash
+      run: ${{ github.action_path }}/preparation.sh
+    - id: tagging
+      env:
+        COMMAND: ${{ inputs.command }}
+        SNAPSHOT_PATTERN: ${{ inputs.snapshot-pattern }}
+        TAG_PREFIX: ${{ inputs.tag-prefix }}
+        KEEP_SUFFIX: ${{ inputs.keep-suffix }}
+        DRY_RUN: ${{ inputs.dry-run }}
+        SKIP_PUSH: ${{ inputs.skip-push }}
+      shell: bash
+      run: ${{ github.action_path }}/tagging.sh
