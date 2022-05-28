@@ -1,5 +1,130 @@
 = auto-tagging-action
 
+This project is a composite GitHub Action that automatically performs tagging on every version change.
+The script ensures that an annotated tag is created for the current version determined by a given command.
+Please note that tagging is skipped for snapshots and also if the tag for the current version does already exist.
+
+== Usage
+
+First, it has to be ensured that this GitHub Action has read and *write* permissions to push created tags.
+Open the repository settings and navigate to "Actions", "General" and in the "Workflow Permissions" section select "Read and Write Permissions".
+
+The link:action.yaml[action.yaml] file contains metadata about this GitHub Action and describes how to use it.
+
+The example below shows how to use the auto-tagging for a NPM project.
+After execution, some variables can be used to publish artifacts.
+
+.Example CI script
+[source,yaml]
+----
+on: [push]
+
+jobs:
+  tagging:
+    runs-on: ubuntu-latest
+    name: An example job
+    steps:
+      - uses: actions/checkout@v3
+      - id: tagging
+        uses: brettaufheber/auto-tagging-action@v1
+        with:
+          command: jq -r '.version' package.json
+          snapshot-pattern: ^0\.  # major part is 0
+          tag-prefix: 'v'
+      - run: |
+          echo version-given: ${{ steps.tagging.outputs.version-given }}
+          echo version-major-minor-patch: ${{ steps.tagging.outputs.version-major-minor-patch }}
+          echo version-major-minor: ${{ steps.tagging.outputs.version-major-minor }}
+          echo version-major: ${{ steps.tagging.outputs.version-major }}
+          echo version-without-suffix: ${{ steps.tagging.outputs.version-without-suffix }}
+          echo version-suffix: ${{ steps.tagging.outputs.version-suffix }}
+          echo version-alternative: ${{ steps.tagging.outputs.version-alternative }}
+          echo version-alternative-suffix: ${{ steps.tagging.outputs.version-alternative-suffix }}
+          echo version-tag: ${{ steps.tagging.outputs.version-tag }}
+          echo strategy: ${{ steps.tagging.outputs.strategy }}
+          echo tag-created: ${{ steps.tagging.outputs.tag-created }}
+----
+
+.Example output for snapshots (snapshot-pattern: `^0\.`)
+[source]
+----
+version-given: 0.1.0
+version-major-minor-patch: 0.1.0
+version-major-minor: 0.1
+version-major: 0
+version-without-suffix: 0.1.0
+version-suffix:
+version-alternative: 0.1.0-latest.3.0cb93fe64c5b
+version-alternative-suffix: -latest.3.0cb93fe64c5b
+version-tag:
+strategy: snapshot
+tag-created: no
+----
+
+.Example output for snapshots (snapshot-pattern: `-SNAPSHOT$`)
+[source]
+----
+version-given: 1.0.1-SNAPSHOT
+version-major-minor-patch: 1.0.1
+version-major-minor: 1.0
+version-major: 1
+version-without-suffix: 1.0.1
+version-suffix: -SNAPSHOT
+version-alternative: 1.0.1-latest.3.0cb93fe64c5b
+version-alternative-suffix: -latest.3.0cb93fe64c5b
+version-tag:
+strategy: snapshot
+tag-created: no
+----
+
+.Example output for releases
+[source]
+----
+version-given: 1.0.1
+version-major-minor-patch: 1.0.1
+version-major-minor: 1.0
+version-major: 1
+version-without-suffix: 1.0.1
+version-suffix:
+version-alternative: 1.0.1-latest.3.0cb93fe64c5b
+version-alternative-suffix: -latest.3.0cb93fe64c5b
+version-tag: v1.0.1
+strategy: release
+tag-created: yes
+----
+
+.Example output for releases with keep-suffix=yes
+[source]
+----
+version-given: 0.8.15rc.dev1
+version-major-minor-patch: 0.8.15
+version-major-minor: 0.8
+version-major: 0
+version-without-suffix: 0.8.15
+version-suffix: rc.dev1
+version-alternative: 0.8.15-latest.3.0cb93fe64c5b
+version-alternative-suffix: -latest.3.0cb93fe64c5b
+version-tag: v0.8.15rc.dev1
+strategy: release
+tag-created: yes
+----
+
+.Example output for releases without patch level
+[source]
+----
+version-given: 2018.04
+version-major-minor-patch:
+version-major-minor: 2018.04
+version-major: 2018
+version-without-suffix: 2018.04
+version-suffix:
+version-alternative: 2018.04-latest.3.0cb93fe64c5b
+version-alternative-suffix: -latest.3.0cb93fe64c5b
+version-tag: v2018.04
+strategy: release
+tag-created: yes
+----
+
 == MIT License
 
 Copyright (c) 2022 Eric Löffler (brettaufheber)
